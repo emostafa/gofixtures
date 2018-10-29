@@ -56,12 +56,12 @@ func main() {
 	var datastore dal.Datastore
 	switch dbConf.Driver {
 	case "postgres":
-		datastore = postgres.New()
+		datastore = postgres.New(dbConf)
 	default:
 		feeder.Error(errors.New("unsupported database driver"), true)
 	}
 	feeder.Print("attempting to connect to datastore...")
-	err = datastore.Connect(dbConf)
+	err = datastore.Connect()
 	if err != nil {
 		feeder.Error(err, true)
 	}

@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/ishehata/gofixtures/dal"
 	"github.com/ishehata/gofixtures/entity"
@@ -10,17 +12,20 @@ import (
 )
 
 // New Creates
-func New() dal.Datastore {
-	return &postgresDatastore{}
+func New(config entity.DBConfig) dal.Datastore {
+	return &postgresDatastore{
+		config: config,
+	}
 }
 
 type postgresDatastore struct {
-	db *sqlx.DB
+	db     *sqlx.DB
+	config entity.DBConfig
 }
 
 // Connect connects to postgresql db based on parameters of DBConfig object
-func (datastore *postgresDatastore) Connect(conf entity.DBConfig) error {
-	connString := buildConnectionString(conf)
+func (datastore *postgresDatastore) Connect() error {
+	connString := buildConnectionString(datastore.config)
 	// open connection and ping
 	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {
@@ -30,10 +35,35 @@ func (datastore *postgresDatastore) Connect(conf entity.DBConfig) error {
 	return nil
 }
 
+func (datastore *postgresDatastore) createTable(tableName string, columns []string) error {
+	columnsDef := strings.Join(columns, " VARCHAR, ")
+	columnsDef += " VARCHAR"
+	q := fmt.Sprintf("CREATE TABLE TABLE IF NOT EXISTS public.%s (%s)", tableName, columnsDef)
+	_, err := datastore.db.Exec(q)
+	return err
+}
+
+func keys(m map[string]interface{}) []string {
+	keys := make([]string, len(m))
+	i := 0
+	for k := range m {
+		keys[i] = k
+		i++
+	}
+	return keys
+}
+
 func (datastore *postgresDatastore) Insert(fixture entity.Fixture) error {
 	tx, err := datastore.db.Begin()
 	if err != nil {
 		return err
+	}
+	log.Println("datastore.config.AutoCreateTables", datastore.config.AutoCreateTables)
+	if datastore.config.AutoCreateTables {
+		columnsList := keys(fixture.Records[0])
+		if err := datastore.createTable(fixture.Table, columnsList); err != nil {
+			log.Fatal(err)
+		}
 	}
 	for _, record := range fixture.Records {
 		query := buildNamedQuery(fixture.Table, record)

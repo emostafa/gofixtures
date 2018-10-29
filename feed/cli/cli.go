@@ -18,6 +18,7 @@ type feeder struct {
 	dbConfFile string
 	directory  string
 	currentDir string
+	AutoTables bool
 }
 
 func init() {
@@ -40,6 +41,7 @@ func (cli *feeder) readCommandLineFlags() {
 	flag.StringVar(&cli.directory, "dir", defaultFixturesDirectory, "The path of the fixtures directory")
 	flag.StringVar(&cli.filename, "file", "", "The path of a fixture file to load")
 	flag.StringVar(&cli.dbConfFile, "dbconf", defaultDBConfigFile, "The path of dbconf file to load database configuration")
+	flag.BoolVar(&cli.AutoTables, "autoTables", false, "Automatically create tables if they doesn't exists, false by default")
 
 	flag.Parse()
 }
