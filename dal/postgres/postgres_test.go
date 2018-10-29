@@ -24,33 +24,23 @@ func prepareTestData(numberOfRecords int) entity.Fixture {
 	return fixture
 }
 
-func prepareDatastoreTables(datastore *postgresDatastore) {
-	datastore.db.MustExec(`
-		CREATE TABLE IF NOT EXISTS products (
-			name varchar(255),
-			slug varchar(255)
-		);
-	`)
-}
-
 func TestInsertion(t *testing.T) {
 	fixture := prepareTestData(100)
 
 	dbConfig := entity.DBConfig{
-		Driver:   "postgres",
-		Database: os.Getenv("GOFIXTURES_TEST_DB_NAME"),
-		User:     os.Getenv("GOFIXTURES_TEST_DB_USER"),
-		Password: os.Getenv("GOFIXTURES_TEST_DB_PASSWORD"),
-		Host:     os.Getenv("GOFIXTURES_TEST_DB_HOST"),
+		Driver:           "postgres",
+		Database:         os.Getenv("GOFIXTURES_TEST_DB_NAME"),
+		User:             os.Getenv("GOFIXTURES_TEST_DB_USER"),
+		Password:         os.Getenv("GOFIXTURES_TEST_DB_PASSWORD"),
+		Host:             os.Getenv("GOFIXTURES_TEST_DB_HOST"),
+		AutoCreateTables: true,
 	}
-	datastore := New()
-	err := datastore.Connect(dbConfig)
+	datastore := New(dbConfig)
+	err := datastore.Connect()
 	if err != nil {
 		t.Error(err)
 		t.Fail()
 	}
-	// prepare database tables
-	prepareDatastoreTables(datastore.(*postgresDatastore))
 	err = datastore.Insert(fixture)
 	if err != nil {
 		t.Error(err)
@@ -67,14 +57,12 @@ func BenchmarkInsertion(b *testing.B) {
 		Password: os.Getenv("GOFIXTURES_TEST_DB_PASSWORD"),
 		Host:     os.Getenv("GOFIXTURES_TEST_DB_HOST"),
 	}
-	datastore := New()
-	err := datastore.Connect(dbConfig)
+	datastore := New(dbConfig)
+	err := datastore.Connect()
 	if err != nil {
 		b.Error(err)
 		b.Fail()
 	}
-	// prepare database tables
-	prepareDatastoreTables(datastore.(*postgresDatastore))
 	for i := 0; i < b.N; i++ {
 		fixture := prepareTestData(b.N)
 		err := datastore.Insert(fixture)
